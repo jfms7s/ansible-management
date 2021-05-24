@@ -1,0 +1,29 @@
+# {{ ansible_managed }}
+
+QUERY_LOGGING=true
+INSTALL_WEB=true
+
+configDirectory=/etc/pihole
+installDirectory=/opt/pihole
+
+PIHOLE_INTERFACE={{ network_interface }}
+#IPV4_ADDRESS={{ ip_adress | default("") }}
+IPV4_ADDRESS={{ hostvars[inventory_hostname]['ansible_' + network_interface]['ipv4']['address'] }}/24
+#IPV6_ADDRESS={{ hostvars[inventory_hostname]['ansible_' + network_interface]['ipv6'][0]['address'] }}
+
+{% for addr in dns %}
+PIHOLE_DNS_{{ loop.index }}={{ addr }}
+{% endfor %}
+
+PIHOLE_DOMAIN=lan
+
+WEBUIBOXEDLAYOUT=boxed
+WEBTHEME=default-dark
+
+{% if dhcp is defined %}
+DHCP_ACTIVE=true
+{% for key,value in dhcp.items() %}
+DHCP_{{ key }}={{ value | lower }}
+{% endfor %}
+{% endif %}
+

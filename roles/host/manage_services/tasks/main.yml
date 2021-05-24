@@ -1,0 +1,23 @@
+---
+- name: Create Service
+  template:
+    src: systemb.service.j2
+    dest: /etc/systemd/system/{{ item.key }}.service
+    mode: 0644
+  loop: "{{ services | default({}) | dict2items }}"
+  register: state
+
+- name: reload services
+  block: 
+    - name: systemd.reload
+      systemd:
+        daemon_reload: yes
+
+    - name: Restart affected services Service
+      service: 
+        name: "{{ item }}"
+        state: restarted 
+        enabled: true
+      loop: |
+        {{ state | json_query("results[?changed].item.key") }}
+  when: state.changed

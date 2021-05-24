@@ -1,0 +1,12 @@
+---
+- name: Install unbound
+  apt:
+    name: unbound
+    state: latest
+    update_cache: yes
+
+- name: Create pi-hole unbound configuration
+  copy:
+    src: "unbound_pi-hole.conf"
+    dest: "/etc/unbound/unbound.conf.d/pi-hole.conf"
+  notify: service.restart.unbound

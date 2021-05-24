@@ -1,0 +1,35 @@
+---
+- name: Create Plex Server Instance
+  docker_container:
+    name: plex
+    image: linuxserver/plex
+    state: started
+    restart_policy: unless-stopped
+    pull: true
+    network_mode: host
+    env:
+      PUID: "1000"
+      PGID: "1000"
+      CHANGE_CONFIG_DIR_OWNERSHIP: "false"
+      VERSION: "docker"
+      UMASK: "022" 
+      PLEX_CLAIM: '{{ claim | default("") }}'
+    volumes:
+      - '{{ plex_config_directory }}:/config'
+      - '{{ media_directory }}:{{ media_directory }}'
+
+- name: Create Tautulli Instance
+  docker_container:
+    name: tautulli
+    image: linuxserver/tautulli
+    state: started
+    restart_policy: unless-stopped
+    pull: true
+    network_mode: host
+    env:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Europe/Lisbon"
+    volumes:
+      - '{{ tautulli_config_directory }}:/config'
+      - '{{ plex_config_directory }}/Library/Application Support/Plex Media Server/Logs:/plex_logs:ro'

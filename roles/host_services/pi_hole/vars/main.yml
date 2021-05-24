@@ -1,0 +1,4 @@
+---
+pi_hole_bin: /usr/local/bin/pihole
+pi_hole_config_location: /etc/pihole
+pi_hole_tmp_dir: /tmp/pihole

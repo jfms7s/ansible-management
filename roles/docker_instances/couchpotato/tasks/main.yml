@@ -1,0 +1,19 @@
+---
+- name: Create Couchpotato Instance
+  docker_container:
+    name: couchpotato
+    image: linuxserver/couchpotato
+    state: started
+    restart_policy: unless-stopped
+    pull: true
+    network_mode: host
+    #ports:
+    #  - 5050:5050
+    env:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: Europe/London
+      UMASK: "022"
+    volumes:
+      - '{{ couchpotato_config_directory }}:/config'
+      - '{{ couchpotato_media_base_directory }}:{{ couchpotato_media_base_directory }}'

@@ -1,0 +1,17 @@
+---
+downloader_init:
+  medusa_conf:
+    torrent_method: rtorrent
+    anime_default: 1
+    root_dirs: 1, {{ medusa_media.shows_anime_directory }}, {{ medusa_media.shows_directory }}
+    tv_download_dir: "{{ medusa_downloads.finish }}"
+    process_automatically: 1
+    no_delete: 1
+    unpack: 1
+    #torrent_host: scgi:///run/php/.rtorrent.sock
+    torrent_host: scgi://localhost:5000
+    torrent_path: "{{ medusa_downloads.incoming }}"
+    torrent_label: auto-show
+    torrent_label_anime: auto-show-anime
+    torrent_verify_cert: 1
+    torrent_auth_type: none

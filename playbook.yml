@@ -1,0 +1,95 @@
+---
+- hosts: all
+  gather_facts: true
+  become: true
+  roles:
+    - role: host/install_packages
+      install_packages:
+        - python3
+        - python3-pip
+        - curl
+
+    - role: host/install_docker 
+      when: ansible_architecture != "armv6l"
+
+    - role: host/manage_users
+      users:
+        - name: "{{ lookup('env', 'USER') }}"
+          authorized_key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+          groups: |
+            {{ [ 'sysadmin'] +
+              ([] if ansible_architecture == "armv6l" else [ "docker" ] )
+            }}
+          remove: false
+          remove_home: false
+
+    - role: host/manage_volumes
+      volumes: "{{ host_volumes | default([]) }}"
+  
+    - role: host_services/node_exporter
+
+- hosts: pi-hole
+  gather_facts: true
+  become: true
+  roles:
+    - role: host_services/pi_hole
+      network_interface: wlan0
+      dhcp:
+        vodafone_box_mac: "{{ vodafone_box_mac_address }}"
+        ACTIVE: true
+        START: 192.168.1.50
+        END: 192.168.1.251
+        ROUTER: 192.168.1.1
+        LEASETIME: 24
+        IPv6: false
+        rapid_commit: false
+      dns:
+        - 127.0.0.1#5335
+    - role: host/static_ip
+      network_static_ip:   
+        - interface: wlan0
+          addresses: 
+            - 192.168.1.3/24
+          gateway: 192.168.1.1
+          dns:
+            - 8.8.8.8
+            - 8.8.4.4
+
+- hosts: pi-monitoring
+  gather_facts: true
+  become: true
+  roles:
+    - role: host_services/prometheus
+    - role: host_services/grafana
+
+- hosts: media_server
+  gather_facts: false
+  become: true
+  roles:
+
+    - role: host_services/samba
+
+    - role: docker_instances/plex_server
+      claim: "{{ plex.location.claim | default('') }}"
+      plex_config_directory: "{{ plex.location.plex_configs }}"
+      tautulli_config_directory: "{{ plex.location.tautulli_configs }}"
+      media_directory: "{{ plex.location.media }}"
+
+    - role: docker_instances/rutorrent
+      download_directory: "{{ ru_torrent.location.download }}"
+      configuration_directory: "{{ ru_torrent.location.config }}"
+
+    - role: docker_instances/medusa
+      medusa_config_directory: "{{ medusa.location.config }}"
+      medusa_media_base_directory: "{{ medusa.location.media }}"
+      medusa_downloads:
+        incoming: "{{ medusa.location.media }}/downloads/shows-incoming"
+        finish: "{{ medusa.location.media }}/downloads/shows-finish"
+      medusa_media:
+        shows_directory: "{{ medusa.location.media }}/media/shows"
+        shows_anime_directory: "{{ medusa.location.media }}/media/shows-anime"
+
+    - role: docker_instances/couchpotato
+      couchpotato_config_directory: "{{ couchpotato.location.config }}"
+      couchpotato_media_base_directory: "{{ couchpotato.location.media }}"    
+

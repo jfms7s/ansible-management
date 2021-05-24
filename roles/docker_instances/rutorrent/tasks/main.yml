@@ -1,0 +1,42 @@
+---
+- name: Create ru-Torrent Instance
+  docker_container:
+    name: ru-torrent
+    image: linuxserver/rutorrent
+    state: started
+    restart_policy: unless-stopped
+    pull: true
+    network_mode: host
+    #ports:
+    #  - 80:80
+    #  - 5000:5000
+    #  - 51413:51413
+    #  - 6881:6881/udp
+    env:
+      PUID: "1000"
+      PGID: "1000"
+      CHANGE_CONFIG_DIR_OWNERSHIP: "false"
+    volumes:
+      - '{{ configuration_directory }}:/config'
+      - '{{ download_directory }}:{{ download_directory }}'
+      - 'torrent-socket:/run/php/'
+
+## https://readthedocs.org/projects/rtorrent-docs/downloads/pdf/latest/
+- name: Copy ru-torrent triggers
+  template: 
+    src: config.php.j2
+    dest: "{{ configuration_directory }}/rutorrent/settings/config.php"
+    backup: yes
+  notify:
+    - ru_torrent.restart
+
+
+- name: Copy ru-torrent triggers
+  template: 
+    src: rtorrent.rc.j2
+    dest: "{{ configuration_directory }}/rtorrent/rtorrent.rc"
+    backup: yes
+  notify:
+    - ru_torrent.restart
+
+

@@ -1,0 +1,8 @@
+---
+- name: pihole.restart
+  command: "/usr/local/bin/pihole restartdns"
+
+- name: service.restart.unbound
+  service:
+    name: unbound
+    state: restarted

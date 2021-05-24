@@ -1,0 +1,10 @@
+---
+- name: systemd.reload
+  systemd:
+    daemon_reload: yes
+
+- name: service.reload.docker
+  service: 
+    name: docker
+    state: reload
+    enabled: true

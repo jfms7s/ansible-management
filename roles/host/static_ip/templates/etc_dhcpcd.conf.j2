@@ -1,0 +1,18 @@
+hostname
+clientid
+persistent
+option rapid_commit
+option domain_name_servers, domain_name, domain_search, host_name
+option classless_static_routes
+option interface_mtu
+require dhcp_server_identifier
+slaac private
+
+{% for setting in network_static_ip %}
+interface {{ setting.interface }}
+{% for addr in setting.addresses %}
+static ip_address={{ addr }}
+{% endfor %}
+static routers={{ setting.gateway }}
+static domain_name_servers={{ setting.dns | join(' ') }}
+{% endfor %}

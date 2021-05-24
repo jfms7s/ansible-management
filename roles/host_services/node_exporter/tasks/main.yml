@@ -1,0 +1,73 @@
+---
+- name: Get node exported last build info
+  uri:
+    url: "{{ node_exporter_latest_meta }}"
+    return_content: yes
+  register: git_response
+
+- name: Check current node_exporter version
+  command: "{{ node_exporter_bin_path }} --version"
+  failed_when: false
+  changed_when: false
+  register: build_info
+
+- name: Update to node-exporter required
+  block:
+    - name: Create temp dir
+      file:
+        path: "{{ node_exporter_tmp_dir }}"
+        state: directory
+
+    - name: Get Latest artifact
+      get_url:                                                           
+        url: "{{ (git_response.content | from_json) | json_query('assets[? contains(browser_download_url,`linux`) && contains(browser_download_url,`'+ architecture_index[ansible_architecture] +'`)].browser_download_url') | first }}"
+        dest: "{{ node_exporter_tmp_dir }}/node_exporter.tar.gz"
+
+    - name: Unarchive artifact
+      unarchive:
+        src: "{{ node_exporter_tmp_dir }}/node_exporter.tar.gz"
+        dest: "{{ node_exporter_tmp_dir }}"
+        extra_opts: [--strip-components=1]
+        remote_src: yes
+
+    - name: Move node_exporter binary into place.
+      copy:
+        src: "{{ node_exporter_tmp_dir }}/node_exporter"
+        dest: "{{ node_exporter_bin_path }}"
+        mode: 0755
+        remote_src: true
+
+  always:
+    - name: Remove temp dir
+      file:
+        path: "{{ node_exporter_tmp_dir }}"
+        state: absent
+  when: >
+    (git_response.content | from_json).tag_name | replace('v','') not in (build_info.stderr | default('') )
+
+- name: Add Node exporter as a service
+  import_role:
+    name: host/manage_services
+  vars:
+    services:
+      node_exporter:
+        Unit:
+          Description: Node Metrics Service
+        Service:
+          #EnvironmentFile: /etc/sysconfig/node_exporter
+          ExecStart: "{{ node_exporter_bin_path }} $OPTIONS"
+        Install:
+          WantedBy: multi-user.target
+  register: servie_register
+  notify: systemd.reload
+
+- meta: flush_handlers
+  when: servie_register.change == true
+
+- name: Activate node_exporter
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: yes
+    masked: no
+  

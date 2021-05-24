@@ -1,0 +1,19 @@
+---
+#- name: Check Volume
+#  mount:
+#    src: UUID={{ item.uuid }}
+#    path: "{{ item.path }}"
+#    fstype: "{{ item.fstype }}"
+#    state: present
+#  register: mount_info
+# loop: "{{ volumes }}"
+#  when: (item.state | default("mounted")) == "mounted"
+
+- name: Change volume state
+  mount:
+    src: UUID={{ item.uuid }}
+    path: "{{ item.path }}"
+    fstype: "{{ item.fstype }}"
+    state: "{{ item.state | default('mounted') }}" # absent
+#  when: mount_info.changed or (item.state | default("mounted")) != "mounted"
+  loop: "{{ volumes }}"

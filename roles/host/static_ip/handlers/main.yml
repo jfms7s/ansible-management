@@ -1,0 +1,10 @@
+---
+- name: netplan.apply
+  command: sudo netplan apply
+  async: 45
+  poll: 0
+
+- name: system.reboot
+  reboot:
+    reboot_timeout: 3600
+    # fix reboot problem wait_for_connection

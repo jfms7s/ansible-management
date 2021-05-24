@@ -1,0 +1,87 @@
+---
+- name: Create Medusa Instance
+  docker_container:
+    name: medusa
+    image: linuxserver/medusa
+    state: started
+    restart_policy: unless-stopped
+    pull: true
+    network_mode: host
+    #ports:
+    #  - 8081:8081
+    env:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Europe/Lisbon"
+    volumes:
+      - '{{ medusa_config_directory }}:/config'
+      - '{{ medusa_media_base_directory }}:{{ medusa_media_base_directory }}'
+      - 'torrent-socket:/run/php/'
+
+- name: Waiting for Medusa config file to exist
+  wait_for:
+    path: "{{ medusa_config_directory }}/config.ini"
+    state: present
+    msg: Medusa config file missing
+
+- name: Get stats of the FS object
+  local_action: 
+    module: stat  
+    path: "{{ role_path }}/vars/main.yml"
+  become: false
+  register: sym
+
+- name: Using vars file modify date as version 
+  debug:
+    msg: "{{ role_path }}/vars/main.yml -> {{ sym.stat.mtime }}"
+
+- name: Check version file
+  stat:
+    path: "{{ medusa_config_directory }}/.ver{{ sym.stat.mtime | string | replace('.','_')}}"
+  register: check_file
+
+- name: Medusa configs need update
+  block:
+    - name: Disable medusa to update configs
+      docker_container:
+        name: medusa
+        state: stopped
+
+    - name: Create backup of config.ini
+      copy:
+        src: "{{ medusa_config_directory }}/config.ini"
+        dest: "{{ medusa_config_directory }}/config.ini.backup"
+        remote_src: yes
+    - name: Add Medusa Configs
+      block:
+        - name: "Update Medusa existing Configurations" 
+          lineinfile: 
+            path: "{{ medusa_config_directory }}/config.ini" 
+            regexp: '{{ item.key }}\s+=\s+.+' 
+            line: '{{ item.key }} = {{ item.value }}' 
+            state: present 
+          loop: "{{ downloader_init.medusa_conf | dict2items }}"
+
+        - name: Rename config.ini.backup
+          copy:
+            src: "{{ medusa_config_directory }}/config.ini.backup"
+            dest: "{{ medusa_config_directory }}/config.ini.{{ '%Y-%m-%d_%H_%M_%S' | strftime }}.backup"
+            remote_src: yes
+
+        - name: Creating version file
+          file:
+            path: "{{ medusa_config_directory }}/.ver{{ sym.stat.mtime | string | replace('.','_')}}"
+            state: touch
+      rescue:
+        - name: Revert change
+          copy:
+            src: "{{ medusa_config_directory }}/config.ini.backup"
+            dest: "{{ medusa_config_directory }}/config.ini"
+            remote_src: yes
+  when: not check_file.stat.exists
+  
+- name: Enable medusa to update configs
+  docker_container:
+    name: medusa
+    state: started
+    

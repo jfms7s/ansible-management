@@ -1,0 +1,106 @@
+---
+- name: Get grafana last build info
+  uri:
+    url: "https://api.github.com/repos/grafana/grafana/releases"
+    return_content: yes
+  register: git_response
+
+- name: Check current grafana version
+  command: /opt/grafana/grafana-server -v
+  failed_when: false
+  changed_when: false
+  register: build_info
+
+- name: Update to node-exporter required
+  block:
+
+    - name: Stop grafana
+      systemd:
+        name: grafana
+        state: stopped
+
+    - name: Remove dirs
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/grafana
+        - /opt/grafana
+
+    - name: Create required dirs
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - /tmp/grafana
+        - /opt/grafana/
+        
+    - name: Get Latest artifact
+      get_url:
+        url: |
+          https://dl.grafana.com/oss/release/grafana-{{ (git_response.content | from_json | json_query("[?!contains(tag_name,`beta`)].tag_name") | first | replace("v","") ) }}.linux-{{ architecture_index[ansible_architecture] }}.tar.gz
+        dest: "/tmp/grafana/grafana.tar.gz"
+
+    - name: Unarchive artifact
+      unarchive:
+        src: "/tmp/grafana/grafana.tar.gz"
+        dest: "/tmp/grafana"
+        extra_opts: [--strip-components=1]
+        remote_src: yes
+
+    - name: Move grafana binary into place.
+      copy:
+        src: /tmp/grafana/
+        dest: /opt/grafana/
+        remote_src: true
+
+    - name: Copy grafana.ini
+      copy:
+        src: grafana.ini
+        dest: /etc/grafana/grafana.ini
+
+  always:
+    - name: Remove temp dir
+      file:
+        path: /tmp/grafana
+        state: absent
+  when: >
+    (git_response.content | from_json | json_query("[?!contains(tag_name,`beta`)].tag_name") | first | replace("v","") ) not in (build_info.stdout | default('') )
+
+
+- name: Add Node exporter as a service
+  import_role:
+    name: host/manage_services
+  vars:
+    services:
+      grafana:
+        Unit:
+          Description: Grafana instance
+          Documentation: http://docs.grafana.org
+          Wants: network-online.target
+          After: postgresql.service mariadb.service mysql.service
+        Service:
+          EnvironmentFile: /etc/default/grafana-server
+          #User: grafana
+          #Group: grafana
+          Type: simple
+          Restart: on-failure
+          WorkingDirectory: /opt/grafana
+          #RuntimeDirectory: grafana
+          #RuntimeDirectoryMode: 0750
+          ExecStart: /opt/grafana/grafana-server --config=/etc/grafana/grafana.ini --pidfile=/var/run/grafana/grafana-server.pid --packaging=deb
+          LimitNOFILE: 10000
+          TimeoutStopSec: 20
+          UMask: 0027
+        Install:
+          WantedBy: multi-user.target
+  notify: systemd.reload
+
+- meta: flush_handlers
+
+- name: Activate grafana
+  systemd:
+    name: grafana
+    state: started
+    enabled: yes
+    masked: no

@@ -1,0 +1,22 @@
+- name: Install commun dependencies 
+  apt:
+    name: "{{ install_packages }}"
+    state: latest
+    update_cache: yes
+  when: install_packages is defined
+
+- name: Remove useless packages from the cache
+  apt:
+    autoclean: yes    
+    autoremove: yes
+
+- name: Install python module
+  pip:
+    name: "{{ install_pip_modules }}"
+  when: install_pip_modules is defined
+
+- name: Upgrade Packages
+  apt:
+    state: latest
+    upgrade: full
+    update_cache: yes

@@ -1,0 +1,35 @@
+---
+## https://linuxhint.com/setup_static_ip_address_ubuntu/
+
+- block:
+  - name: Copy disable network config file 
+    copy:
+      src: "{{ item.from }}"
+      dest: "{{ item.to }}"
+      owner: root
+      group: root
+      mode: '0744'
+    loop:
+      - from: "99-disable-network-config.cfg"
+        to: "/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
+    notify:
+      - netplan.apply
+
+  - name: Generate netplay network config file
+    template: 
+      src: etc_netplan_00-installer-config.yaml.j2
+      dest: /etc/netplan/00-installer-config.yaml
+      backup: yes
+    notify:
+      - netplan.apply
+  when: ansible_distribution == 'Ubuntu'
+
+- block:
+  - name: Generate etc dhcpcd.conf file
+    template: 
+      src: etc_dhcpcd.conf.j2
+      dest: /etc/dhcpcd.conf
+      backup: yes
+    notify:
+      - system.reboot
+  when: ansible_distribution == 'Debian'
