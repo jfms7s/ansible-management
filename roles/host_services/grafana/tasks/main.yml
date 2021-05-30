@@ -6,18 +6,21 @@
   register: git_response
 
 - name: Check current grafana version
-  command: /opt/grafana/grafana-server -v
+  command: /opt/grafana/bin/grafana-server -v
   failed_when: false
   changed_when: false
   register: build_info
 
-- name: Update to node-exporter required
+- name: Update to grafana required
   block:
+    - name: Populate service facts
+      service_facts:
 
     - name: Stop grafana
       systemd:
         name: grafana
         state: stopped
+      when: "'grafana.service' in services"
 
     - name: Remove dirs
       file:
@@ -33,8 +36,9 @@
         state: directory
       loop:
         - /tmp/grafana
-        - /opt/grafana/
-        
+        - /opt/grafana
+        - /etc/opt/grafana
+
     - name: Get Latest artifact
       get_url:
         url: |
@@ -57,18 +61,16 @@
     - name: Copy grafana.ini
       copy:
         src: grafana.ini
-        dest: /etc/grafana/grafana.ini
+        dest: /etc/opt/grafana/grafana.ini
 
   always:
     - name: Remove temp dir
       file:
         path: /tmp/grafana
         state: absent
-  when: >
-    (git_response.content | from_json | json_query("[?!contains(tag_name,`beta`)].tag_name") | first | replace("v","") ) not in (build_info.stdout | default('') )
+  when: (git_response.content | from_json | json_query("[?!contains(tag_name,`beta`)].tag_name") | first | replace("v","") ) not in (build_info.stdout | default('') )
 
-
-- name: Add Node exporter as a service
+- name: Add grafana as a service
   import_role:
     name: host/manage_services
   vars:
@@ -80,7 +82,7 @@
           Wants: network-online.target
           After: postgresql.service mariadb.service mysql.service
         Service:
-          EnvironmentFile: /etc/default/grafana-server
+          #EnvironmentFile: /etc/default/grafana-server
           #User: grafana
           #Group: grafana
           Type: simple
@@ -88,15 +90,12 @@
           WorkingDirectory: /opt/grafana
           #RuntimeDirectory: grafana
           #RuntimeDirectoryMode: 0750
-          ExecStart: /opt/grafana/grafana-server --config=/etc/grafana/grafana.ini --pidfile=/var/run/grafana/grafana-server.pid --packaging=deb
+          ExecStart: /opt/grafana/bin/grafana-server --config=/etc/opt/grafana/grafana.ini --pidfile=/var/run/grafana/grafana-server.pid --packaging=deb
           LimitNOFILE: 10000
           TimeoutStopSec: 20
           UMask: 0027
         Install:
           WantedBy: multi-user.target
-  notify: systemd.reload
-
-- meta: flush_handlers
 
 - name: Activate grafana
   systemd:

@@ -1,0 +1,9 @@
+dhcp-vendorclass=set:vodafone,ARRIS_VIP
+
+dhcp-vendorclass=set:vodafone,MSFT_IPTV
+
+dhcp-mac=set:vodafone,50:95:51:*:*:*
+
+dhcp-host={{ dhcp.vodafone_box_mac }},vbox,192.168.1.2,set:vodafone
+
+dhcp-option=tag:vodafone,option:dns-server,{{ dhcp.ROUTER }}
