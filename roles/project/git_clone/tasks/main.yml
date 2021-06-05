@@ -1,0 +1,11 @@
+---
+- name: Git checkout project
+  git:
+    repo: "{{ project.repo }}"
+    dest: "{{ project.path }}"
+    version: "{{ project.version | default('main') }}"
+
+- name: Run project install
+  make:
+    chdir: "{{ project.path }}"
+    target: install

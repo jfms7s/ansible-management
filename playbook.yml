@@ -5,6 +5,7 @@
   roles:
     - role: host/install_packages
       install_packages:
+        - git
         - python3
         - python3-pip
         - curl
@@ -63,6 +64,7 @@
   become: true
   roles:
     - role: host_services/prometheus
+      scrapers: "{{ prometheus_extra_scrapes | default({}) }}"
     - role: host_services/grafana
 
 - hosts: media_server
@@ -71,6 +73,7 @@
   roles:
 
     - role: host_services/samba
+      samba_shares: "{{samba_locations }}"
 
     - role: docker_instances/plex_server
       claim: "{{ plex.location.claim | default('') }}"
