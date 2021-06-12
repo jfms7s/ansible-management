@@ -1,0 +1,47 @@
+;local {{ openvpn.address }}
+port {{ openvpn.port }}
+proto {{ openvpn.protocol }}
+
+dev tun
+
+ca ca.crt
+cert server.crt
+key server.key
+dh dh.pem
+crl-verify crl.pem
+
+tls-crypt tc.key
+cipher AES-256-CBC
+
+topology subnet
+server  {{ openvpn_tunnel_network | ipaddr('network') }} {{ openvpn_tunnel_network | ipaddr('netmask') }}
+client-to-client
+
+client-config-dir {{ openvpn_ccd_directory }}
+ifconfig-pool-persist ipp.txt
+
+{% for item in (openvpn.subnets | default([]) ) %}
+route {{ item | ipaddr('network') }} {{ item | ipaddr('netmask') }}
+push "route {{ item | ipaddr('network') }} {{ item | ipaddr('netmask') }}"
+{% endfor %}
+
+{% for item in ( openvpn.dns | default([]) ) %}
+push "dhcp-option DNS {{ item }}"
+{% endfor %}
+
+keepalive 10 120
+
+user {{ openvpn_user }}
+group {{ openvpn_group }}
+
+persist-key
+persist-tun
+
+log {{ openvpn_log_directory }}
+status {{ openvpn_status_log_directory }}
+
+verb {{ openvpn_verbosity }}
+
+{% if "udp" in openvpn.protocol %}
+explicit-exit-notify 1
+{% endif %}

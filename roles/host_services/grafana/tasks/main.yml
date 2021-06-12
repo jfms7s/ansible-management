@@ -58,17 +58,18 @@
         dest: /opt/grafana/
         remote_src: true
 
-    - name: Copy grafana.ini
-      copy:
-        src: grafana.ini
-        dest: /etc/opt/grafana/grafana.ini
-
   always:
     - name: Remove temp dir
       file:
         path: /tmp/grafana
         state: absent
   when: (git_response.content | from_json | json_query("[?!contains(tag_name,`beta`)].tag_name") | first | replace("v","") ) not in (build_info.stdout | default('') )
+
+- name: Copy grafana.ini
+  copy:
+    src: grafana.ini
+    dest: /etc/opt/grafana/grafana.ini
+  notify: service.restart.grafana
 
 - name: Add grafana as a service
   import_role:

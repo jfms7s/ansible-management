@@ -1,0 +1,13 @@
+{{ include_file('/etc/openvpn/server/client-common.txt') }}
+<ca>
+{{ include_file('/etc/openvpn/server/ca.crt') }}
+</ca>
+<cert>
+{{ include_file('/etc/openvpn/easy-rsa/pki/issued/'+ user +'.crt') | regex_replace('((.|\n)*)(-----BEGIN CERTIFICATE-----(.|\n)*)', '\\3',multiline=True) }}
+</cert>
+<key>
+{{ include_file('/etc/openvpn/easy-rsa/pki/private/'+ user +'.key')  }}
+</key>
+<tls-crypt>
+{{ include_file('/etc/openvpn/server/tc.key') | regex_replace("(#.*\n?)","") }}
+</tls-crypt>

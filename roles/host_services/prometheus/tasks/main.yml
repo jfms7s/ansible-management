@@ -66,10 +66,6 @@
         Install:
           WantedBy: multi-user.target
   register: servie_register
-  notify: systemd.reload
-
-- meta: flush_handlers
-  when: servie_register.change == true
 
 - name: Set scrappets
   template: 

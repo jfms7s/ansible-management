@@ -1,0 +1,15 @@
+---
+- name: service.restart.openvpn
+  service:
+    name: openvpn-server@server.service
+    state: restarted
+
+- name: service.restart.iptables
+  service:
+    name: iptables
+    state: restarted
+
+
+- name: iptables.save
+  shell: /etc/init.d/iptables-persistent save
+    

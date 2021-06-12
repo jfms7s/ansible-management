@@ -1,0 +1,16 @@
+---
+easy_rsa_dir: /etc/openvpn/easy-rsa
+easy_rsa_pki_dir: "{{ easy_rsa_dir }}/pki"
+easy_rsa_cn: "openvpn.host"
+
+
+openvpn_client_directory: /etc/openvpn/client
+openvpn_server_directory: /etc/openvpn/server
+openvpn_ccd_directory: /etc/openvpn/ccd
+openvpn_status_log_directory: /var/log/openvpn/status.log
+openvpn_log_directory: /var/log/openvpn/logging.log
+openvpn_verbosity: 4
+openvpn_user: nobody
+openvpn_group: nogroup
+openvpn_tunnel_interface: tun0
+openvpn_tunnel_network: "10.8.0.0/24"
