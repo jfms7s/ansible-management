@@ -11,9 +11,10 @@
 
 - name: Change volume state
   mount:
-    src: UUID={{ item.uuid }}
+    src: "{{ item.src }}"
     path: "{{ item.path }}"
     fstype: "{{ item.fstype }}"
     state: "{{ item.state | default('mounted') }}" # absent
+    opts: "{{ item.opts | default(omit) }}"
 #  when: mount_info.changed or (item.state | default("mounted")) != "mounted"
   loop: "{{ volumes }}"

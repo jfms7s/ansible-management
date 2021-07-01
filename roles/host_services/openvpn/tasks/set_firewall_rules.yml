@@ -9,7 +9,7 @@
     out_interface: "{{ openvpn.network_inteface }}"
     jump: MASQUERADE
     comment: openvpn-nat-rule
-  notify: iptables.save
+
 #sudo iptables -I INPUT 1 -i "wlan0" -p udp --dport 1194 -j ACCEPT -m comment --comment "openvpn-input-rule"
 - name: Allow connections to be established to vpn server
   iptables:
@@ -22,7 +22,7 @@
     destination_ports: "{{ openvpn.port }}"
     jump: ACCEPT
     comment: openvpn-input-rule
-  notify: iptables.save
+
 
 #sudo iptables -I FORWARD 1 -d "10.8.0.0/24" -i "wlan0" -o "tun0" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT -m comment --comment "openvpn-forward-rule"
 - name: Forward traffic from local network to vpn network
@@ -39,7 +39,7 @@
       - ESTABLISHED
     jump: ACCEPT
     comment: openvpn-forward-rule
-  notify: iptables.save
+
 
 #sudo iptables -I FORWARD 2 -s "10.8.0.0/24" -i "tun0" -o "wlan0" -j ACCEPT -m comment --comment "openvpn-forward-rule"
 - name: Forward traffic from vpn network to local network 
@@ -53,7 +53,7 @@
     out_interface: "{{ openvpn.network_inteface }}"
     jump: ACCEPT
     comment: openvpn-forward-rule
-  notify: iptables.save
+
 
 - name: required tcp rules
   iptables:
@@ -65,7 +65,7 @@
       - 80 ## http
       - 22 ## ssh
     jump: ACCEPT
-  notify: iptables.save
+
 
 - name: required udp rules
   iptables:
@@ -76,7 +76,7 @@
       - 67 ## dhcp
       - 53 ## dns
     jump: ACCEPT
-  notify: iptables.save
+
 
 - name: TCP/IP three-way handshakes
   iptables:
@@ -86,7 +86,7 @@
       - RELATED
       - ESTABLISHED
     jump: ACCEPT
-  notify: iptables.save
+
 
 - name: loopback
   iptables:
@@ -94,7 +94,7 @@
     chain: INPUT
     in_interface: lo
     jump: ACCEPT
-  notify: iptables.save
+
 
 - name: reject udp rules
   iptables:
@@ -107,7 +107,7 @@
       - 443 ## https
     reject_with: icmp-port-unreachable
     jump: REJECT
-  notify: iptables.save
+
 
 - name: reject tcp rules
   iptables:
@@ -118,12 +118,12 @@
       - 443 ## https
     reject_with: tcp-reset
     jump: REJECT
-  notify: iptables.save
+
 
 - name: drop trafic not in rules
   iptables:
     ip_version: ipv4
     chain: INPUT
     jump: DROP
-  notify: iptables.save
+
   

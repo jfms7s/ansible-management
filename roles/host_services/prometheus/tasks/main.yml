@@ -5,7 +5,7 @@
     return_content: yes
   register: git_response
 
-- name: Check current node_exporter version
+- name: Check current Prometheus version
   command: "/opt/prometheus/prometheus --version"
   failed_when: false
   changed_when: false
@@ -37,17 +37,50 @@
         path: "/tmp/prometheus/prometheus.tar.gz"
         state: absent
 
+    - name: Stop prometheus Service
+      systemd:
+        name: prometheus
+        state: stopped
+
+    - name: Copy Prometheus to old to temp
+      copy:
+        src: /opt/prometheus/
+        dest: /tmp/prometheus.old/
+        remote_src: true
+      ignore_errors: yes
+
+    - name: Remove old files
+      file: 
+        path: /opt/prometheus/
+        state: absent
+
     - name: Copy Prometheus to /opt/
-      ansible.builtin.copy:
+      copy:
         src: /tmp/prometheus/
+        dest: /opt/prometheus/
+        remote_src: true
+  
+  rescue:
+    - name: Remove fail build
+      file: 
+        path: /opt/prometheus/
+        state: absent
+      
+    - name: Copy Prometheus to /opt/
+      copy:
+        src: /tmp/prometheus.old/
         dest: /opt/prometheus/
         remote_src: true
 
   always:
     - name: Remove temp dir
       file:
-        path: "/tmp/prometheus"
+        path: "{{ item }}"
         state: absent
+      loop:
+        - /tmp/prometheus
+        - /tmp/prometheus.old/
+
   when: (git_response.content | from_json).tag_name | replace('v','') not in (build_info.stdout | default('') )
 
 - name: Add Prometheus as a service

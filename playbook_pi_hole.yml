@@ -1,0 +1,18 @@
+---
+- hosts: network_manager
+  gather_facts: true
+  become: true
+  roles:
+    - role: host_services/pi_hole
+      network_interface: "{{ network_inteface }}"
+      dhcp:
+        vodafone_box_mac: "{{ vodafone_box_mac_address }}"
+        ACTIVE: true
+        START: "{{ network_gateway_address | ansible.netcommon.ipaddr('first_usable') }}"
+        END: "{{ network_gateway_address | ansible.netcommon.ipaddr('last_usable') }}"
+        ROUTER: "{{ network_gateway_address | ansible.netcommon.ipaddr('address') }}"
+        LEASETIME: 24
+        IPv6: false
+        rapid_commit: false
+      dns:
+        - 127.0.0.1#5335
