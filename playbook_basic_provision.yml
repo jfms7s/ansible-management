@@ -6,6 +6,7 @@
     - role: host/install_packages
       install_packages:
         - tar
+        - unzip
         - git
         - python3
         - python3-pip

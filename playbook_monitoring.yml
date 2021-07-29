@@ -1,9 +1,11 @@
 ---
 - hosts: all
-  gather_facts: false
-  become: false
+  gather_facts: true
+  become: true
   roles:
     - role: host_services/node_exporter
+    - role: host_services/promtail
+      aggregator_instances: monitoring
 
 - hosts: monitoring
   gather_facts: true
@@ -12,3 +14,4 @@
     - role: host_services/prometheus
       scrapers: "{{ prometheus_extra_scrapes | default({}) }}"
     - role: host_services/grafana
+    - role: host_services/loki

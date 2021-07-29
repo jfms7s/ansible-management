@@ -1,49 +1,11 @@
 ---
-- name: Get node exported last build info
-  uri:
-    url: "{{ node_exporter_latest_meta }}"
-    return_content: yes
-  register: git_response
-
-- name: Check current node_exporter version
-  command: "{{ node_exporter_bin_path }} --version"
-  failed_when: false
-  changed_when: false
-  register: build_info
-
-- name: Update to node-exporter required
-  block:
-    - name: Create temp dir
-      file:
-        path: "{{ node_exporter_tmp_dir }}"
-        state: directory
-
-    - name: Get Latest artifact
-      get_url:                                                           
-        url: "{{ (git_response.content | from_json) | json_query('assets[? contains(browser_download_url,`linux`) && contains(browser_download_url,`'+ architecture_index[ansible_architecture] +'`)].browser_download_url') | first }}"
-        dest: "{{ node_exporter_tmp_dir }}/node_exporter.tar.gz"
-
-    - name: Unarchive artifact
-      unarchive:
-        src: "{{ node_exporter_tmp_dir }}/node_exporter.tar.gz"
-        dest: "{{ node_exporter_tmp_dir }}"
-        extra_opts: [--strip-components=1]
-        remote_src: yes
-
-    - name: Move node_exporter binary into place.
-      copy:
-        src: "{{ node_exporter_tmp_dir }}/node_exporter"
-        dest: "{{ node_exporter_bin_path }}"
-        mode: 0755
-        remote_src: true
-
-  always:
-    - name: Remove temp dir
-      file:
-        path: "{{ node_exporter_tmp_dir }}"
-        state: absent
-  when: >
-    (git_response.content | from_json).tag_name | replace('v','') not in (build_info.stderr | default('') )
+- name: Install Node exporter
+  import_role:
+    name: util/git/get_grafana_labs_application
+  vars:
+    project_name: node_exporter
+    repo_url: https://api.github.com/repos/prometheus/node_exporter/releases/latest
+    binary_path: "{{ node_exporter_bin_path }}"
 
 - name: Add Node exporter as a service
   import_role:

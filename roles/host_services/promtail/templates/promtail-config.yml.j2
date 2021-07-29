@@ -1,0 +1,58 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /var/log/positions.yaml
+
+clients:
+{% for url in ( groups[aggregator_instances] | default([]) | map('regex_replace', '^(.*)$', 'http://\\1:3100/loki/api/v1/push') ) %}
+  - url: '{{ url }}'
+{% endfor %}
+
+scrape_configs:
+- job_name: system
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: varlogs
+      __path__: /var/log/*log
+      level: info
+      
+  pipeline_stages:
+    - match:
+        selector: '{filename="/var/log/auth.log"}'
+        stages:
+          - regex:
+              expression: '(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>[\w\-\.]+)'
+          
+          - labels:
+              hostname:
+
+          - timestamp:
+              ## https://grafana.com/docs/loki/latest/clients/promtail/stages/timestamp/
+              format: "MM dd HH:mm:ss"
+              source: timestamp
+    - match:
+        selector: '{filename="/var/log/daemon.log"}'
+        stages:
+          - regex:
+              expression: (?P<system_timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>[\w\-\.]+)\s+(?P<service>[\w\-\_\.]+)\[(?P<pid>\d+)\]
+          - regex:
+              expression: .*level=(?P<level>\w+)\s+ts=(?P<ts>[^\s]+)\s+caller=(?P<caller>[^\s]+\s)
+          - regex:
+              expression: .*ts=(?P<ts>[^\s]+)\s+caller=(?P<caller>[^\s]+\s)\s+level=(?P<level>\w+)
+
+          - labels:
+              level: 
+              system_timestamp:
+              hostname:
+              service:
+              pid:
+              caller:
+              ts:
+
+          - timestamp:
+              format: "RFC3339Nano"
+              source: ts

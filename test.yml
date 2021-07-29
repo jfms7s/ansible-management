@@ -1,31 +1,24 @@
 ---
-- hosts: weather_station
-  gather_facts: false
+- hosts: media-center
+  gather_facts: true
   become: true
   roles:
-    - role: project/git_clone
-      project:
-        repo: https://github.com/jfms7s/pi-weather-station-exporter.git
-        path: /opt/weather-metrics-exporter
-        version: main
+    - role: util/git/get_grafana_labs_application
+      project_name: prometheus
+      repo_url: https://api.github.com/repos/prometheus/prometheus/releases/latest
+      binary_path: /opt/prometheus/prometheus
 
-    - role: host/manage_services
-      services:
-        weather-metrics-exporter:
-          Unit:
-            Description: Weather Metrics Exporter
-          Service:
-            User: pi
-            ExecStart: "/bin/python3 /opt/weather-metrics-exporter/Weather_Station.py"
-            Restart: on-failure
-          Install:
-            WantedBy: multi-user.target
+    - role: util/git/get_grafana_labs_application
+      project_name: node_exporter
+      repo_url: https://api.github.com/repos/prometheus/node_exporter/releases/latest
+      binary_path: /opt/node_exporter/node_exporter
 
-  tasks:
-    - name: Activate weather-metrics-exporter
-      systemd:
-        name: weather-metrics-exporter
-        state: started
-        enabled: yes
-        masked: no
-      
+    - role: util/git/get_grafana_labs_application
+      project_name: loki
+      repo_url: https://api.github.com/repos/grafana/loki/releases/latest
+      binary_path: /opt/loki/loki-linux-{{ architecture_index[ansible_architecture] }}
+
+    - role: util/git/get_grafana_labs_application
+      project_name: promtail
+      repo_url: https://api.github.com/repos/grafana/loki/releases/latest
+      binary_path: /opt/promtail/promtail-linux-{{ architecture_index[ansible_architecture] }}

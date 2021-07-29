@@ -1,0 +1,4 @@
+- name: service.restart.loki
+  service: 
+    name: loki
+    state: restarted

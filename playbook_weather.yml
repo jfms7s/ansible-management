@@ -1,0 +1,31 @@
+---
+- hosts: weather_station
+  gather_facts: false
+  become: true
+  roles:
+    - role: project/git_clone
+      project:
+        repo: https://github.com/jfms7s/pi-weather-station-exporter.git
+        path: /opt/weather-metrics-exporter
+        version: main
+
+    - role: host/manage_services
+      services:
+        weather-metrics-exporter:
+          Unit:
+            Description: Weather Metrics Exporter
+          Service:
+            User: pi
+            ExecStart: "/bin/python3 /opt/weather-metrics-exporter/Weather_Station.py"
+            Restart: on-failure
+          Install:
+            WantedBy: multi-user.target
+
+  tasks:
+    - name: Activate weather-metrics-exporter
+      systemd:
+        name: weather-metrics-exporter
+        state: started
+        enabled: yes
+        masked: no
+      

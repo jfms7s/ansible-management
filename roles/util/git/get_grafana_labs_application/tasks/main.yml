@@ -1,0 +1,103 @@
+---
+- debug:
+    msg: 
+      project_name: "{{ project_name }}"
+      repo_url: "{{ repo_url }}"
+
+- name: "Get last build info"
+  uri:
+    url: "{{ repo_url }}"
+    return_content: yes
+  register: git_response
+
+- name: Set basic release information
+  set_fact:
+    artifact_url: "{{ (git_response.content | from_json) | json_query( git_artifact_filter + '.browser_download_url' ) | first }}"
+    artifact_content_type: "{{ (git_response.content | from_json) | json_query( git_artifact_filter + '.content_type' ) | first }}"
+
+- name: Check current version
+  command: "{{ binary_path }} {{ binary_version_argument }}"
+  failed_when: false
+  changed_when: false
+  register: build_info
+
+- debug:
+    msg: 
+      repo_version: "{{ (git_response.content | from_json).tag_name | replace('v','') }}"
+      local_version: "{{ (build_info.stdout | default('')) }}"
+      artifact_url: "{{ artifact_url }}"
+      artifact_content_type: "{{ artifact_content_type }}"
+
+- name: Get Artifact
+  block:
+    - name: Create required dirs
+      file:
+        path: "/tmp/{{ project_name }}"
+        state: directory
+
+    - name: Get Latest artifact
+      get_url:                                                           
+        url: "{{ artifact_url }}"
+        dest: "/tmp/{{ project_name }}/{{ project_name }}.tar.gz"
+
+    - name: Unarchive artifact
+      unarchive:
+        src: "/tmp/{{ project_name }}/{{ project_name }}.tar.gz"
+        dest: "/tmp/{{ project_name }}"
+        extra_opts: |
+            {{ 
+              ([] if artifact_content_type == "application/zip" else [ "--strip-components=1" ] )
+            }}
+        remote_src: yes
+
+    - name: Remove remove zipped artifact
+      file:
+        path: "/tmp/{{ project_name }}/{{ project_name }}.tar.gz"
+        state: absent
+
+    - name: Stop Service
+      systemd:
+        name: "{{ project_name }}"
+        state: stopped
+      ignore_errors: yes
+    
+    - name: Copy old build to temp
+      copy:
+        src: /opt/{{ project_name }}/
+        dest: /tmp/{{ project_name }}.old/
+        remote_src: true
+      ignore_errors: yes
+
+    - name: Remove old files
+      file: 
+        path: /opt/{{ project_name }}/
+        state: absent
+
+    - name: Copy new build to /opt/
+      copy:
+        src: /tmp/{{ project_name }}/
+        dest: /opt/{{ project_name }}/
+        remote_src: true
+  
+  rescue:
+    - name: Remove fail build
+      file: 
+        path: /opt/{{ project_name }}/
+        state: absent
+      
+    - name: revert old build to /opt/
+      copy:
+        src: /tmp/{{ project_name }}.old/
+        dest: /opt/{{ project_name }}/
+        remote_src: true
+
+  always:
+    - name: Remove temp dir
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/{{ project_name }}
+        - /tmp/{{ project_name }}.old/
+
+  when: (git_response.content | from_json).tag_name | replace('v','') not in (build_info.stdout | default('') )

@@ -1,0 +1,8 @@
+---
+binary_version_argument: "--version"
+git_artifact_filter: assets[? (! contains(name,`canary`)) && contains(name,`{{ project_name }}`) && contains(name,`linux`) && contains(name,`{{ architecture_index[ansible_architecture] }}`)]
+architecture_index:
+  x86_64: amd64
+  armv7l: armv7
+  armv6l: armv6
+  aarch64: arm64

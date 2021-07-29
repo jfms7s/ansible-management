@@ -1,87 +1,11 @@
 ---
-- name: Get prometheus last build info
-  uri:
-    url: "https://api.github.com/repos/prometheus/prometheus/releases/latest"
-    return_content: yes
-  register: git_response
-
-- name: Check current Prometheus version
-  command: "/opt/prometheus/prometheus --version"
-  failed_when: false
-  changed_when: false
-  register: build_info
-
-- name: Get Artifact
-  block:
-    - name: Create required dirs
-      file:
-        path: "/tmp/prometheus"
-        state: directory
-      loop:
-        - /tmp/prometheus
-        - /etc/opt/prometheus
-    - name: Get Latest artifact
-      get_url:                                                           
-        url: "{{ (git_response.content | from_json) | json_query('assets[? contains(browser_download_url,`linux`) && contains(browser_download_url,`'+ architecture_index[ansible_architecture] +'`)].browser_download_url') | first }}"
-        dest: "/tmp/prometheus/prometheus.tar.gz"
-
-    - name: Unarchive artifact
-      unarchive:
-        src: "/tmp/prometheus/prometheus.tar.gz"
-        dest: "/tmp/prometheus"
-        extra_opts: [--strip-components=1]
-        remote_src: yes
-
-    - name: Remove remove prometheus zipped artifact
-      file:
-        path: "/tmp/prometheus/prometheus.tar.gz"
-        state: absent
-
-    - name: Stop prometheus Service
-      systemd:
-        name: prometheus
-        state: stopped
-
-    - name: Copy Prometheus to old to temp
-      copy:
-        src: /opt/prometheus/
-        dest: /tmp/prometheus.old/
-        remote_src: true
-      ignore_errors: yes
-
-    - name: Remove old files
-      file: 
-        path: /opt/prometheus/
-        state: absent
-
-    - name: Copy Prometheus to /opt/
-      copy:
-        src: /tmp/prometheus/
-        dest: /opt/prometheus/
-        remote_src: true
-  
-  rescue:
-    - name: Remove fail build
-      file: 
-        path: /opt/prometheus/
-        state: absent
-      
-    - name: Copy Prometheus to /opt/
-      copy:
-        src: /tmp/prometheus.old/
-        dest: /opt/prometheus/
-        remote_src: true
-
-  always:
-    - name: Remove temp dir
-      file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /tmp/prometheus
-        - /tmp/prometheus.old/
-
-  when: (git_response.content | from_json).tag_name | replace('v','') not in (build_info.stdout | default('') )
+- name: Install Prometheus
+  import_role:
+    name: util/git/get_grafana_labs_application
+  vars:
+    project_name: prometheus
+    repo_url: https://api.github.com/repos/prometheus/prometheus/releases/latest
+    binary_path: /opt/prometheus/prometheus
 
 - name: Add Prometheus as a service
   import_role:

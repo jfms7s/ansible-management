@@ -1,0 +1,4 @@
+- name: service.restart.promtail
+  service: 
+    name: promtail
+    state: restarted
