@@ -3,14 +3,17 @@
   gather_facts: true
   become: true
   roles:
-    - role: host_services/pi_hole
-      network_interface: "{{ network_inteface }}"
+    - role: host/services/pi_hole
+      network_interface: "{{ static_address.inteface | default('eth0') }}"
+      vodafone_box: 
+        box_mac_address: "D0:6E:DE:E2:69:73"
+        gateway_address: "{{ vodafone.gateway_address | ansible.netcommon.ipaddr('address') }}"
+
       dhcp:
-        vodafone_box_mac: "{{ vodafone_box_mac_address }}"
         ACTIVE: true
-        START: "{{ network_gateway_address | ansible.netcommon.ipaddr('first_usable') }}"
-        END: "{{ network_gateway_address | ansible.netcommon.ipaddr('last_usable') }}"
-        ROUTER: "{{ network_gateway_address | ansible.netcommon.ipaddr('address') }}"
+        START: "{{ static_address.gateway_address | ansible.netcommon.ipaddr('first_usable') }}"
+        END: "{{ static_address.gateway_address | ansible.netcommon.ipaddr('last_usable') }}"
+        ROUTER: "{{ static_address.gateway_address | ansible.netcommon.ipaddr('address') }}"
         LEASETIME: 24
         IPv6: false
         rapid_commit: false

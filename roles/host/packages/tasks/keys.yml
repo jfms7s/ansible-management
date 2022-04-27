@@ -1,0 +1,15 @@
+---
+## keys
+- name: Add GPG apt Key
+  apt_key:
+    url: "{{ item }}"
+    state: present
+  loop: "{{ packages.key.add }}"
+  when: packages.key.add is defined
+
+- name: Remove GPG apt Key
+  apt_key:
+    url: "{{ item }}"
+    state: absent
+  loop: "{{ packages.key.remove }}"
+  when: packages.key.remove is defined

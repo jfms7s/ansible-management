@@ -3,53 +3,79 @@
   gather_facts: true
   become: true
   roles:
-    - role: host/install_packages
-      install_packages:
+    - role: host/packages
+      packages:
+        key:
+          add: []
+          remove: []
+        repository:
+          add: []
+          remove: []
+        remove: []
+#       - cifs-utils
+        install:
+        - gtar 
         - tar
         - unzip
         - git
-        - python3
-        - python3-pip
         - curl
         - cifs-utils
-      install_pip_modules:
+
+        - apt-transport-https
+        - ca-certificates
+        - gnupg
+        - lsb-release
+
+        - python3
+        - python3-pip
+    - role: python/pip
+      pip:
+        remove: []
+        install:
         - jmespath
         - netaddr
         - jinja2-ansible-filters
 
-    - role: host/manage_users
+    - role: host/users
       users:
         - name: "{{ lookup('env', 'USER') }}"
-          authorized_key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
-          groups: |
-            {{ [ 'sysadmin'] +
-              ([] if ansible_architecture == "armv6l" else [ "docker" ] )
-            }}
+          authorized_key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub') }}"
+          append_group: yes
+          groups: 
+            - sysadmin
           remove: false
           remove_home: false
 
-    - role: host/manage_volumes
-      volumes: "{{ host_volumes | default([]) }}"
-  
-    - role: host/static_ip
-      network_static_ip:   
-        - interface: "{{ static_address.inteface | default('eth0') }}"
-          addresses: 
-            - "{{ static_address.inteface_address | ansible.netcommon.ipaddr('address/prefix') }}"
-          gateway: "{{ static_address.gateway_address | ipaddr('address') }}"
-          dns:
-            - 8.8.8.8
-            - 8.8.4.4
+    - role: host/volumes
+#      volumes:
+#        - src: //base_path
+#          path: /mnt/location
+#          fstype: fs_type
+#          state: mounted
+#          opts: opt
+      when: volumes is defined
+
+    - role: host/network/static_address
+      network:
+        static_address:
+          - interface: "{{ static_address.inteface | default('eth0') }}"
+            addresses: 
+              - "{{ static_address.inteface_address | ansible.netcommon.ipaddr('address/prefix') }}"
+            gateway: "{{ static_address.gateway_address | ipaddr('address') }}"
+            dns:
+              - 8.8.8.8
+              - 8.8.4.4
       when: static_address is defined
-      
-- hosts: all
+
+- hosts: docker
   gather_facts: true
   become: true
   roles:
-    - role: host_services/docker 
-      when: ansible_architecture != "armv6l"
+    - role: host/services/docker
 
-    - role: host_services/samba
-      samba_shares: "{{ samba_share | default({}) }}"
-      when: samba_share is defined
-
+    - role: host/users
+      users:
+      - name: "{{ lookup('env', 'USER') }}"
+        append_group: yes
+        groups: 
+          - docker

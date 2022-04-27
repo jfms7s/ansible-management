@@ -1,0 +1,19 @@
+---
+- name: docker.restart
+  service: 
+    name: docker
+    state: restarted
+
+- name: docker.start
+  service: 
+    name: docker 
+    state: started
+
+- name: service.reload.docker
+  service: 
+    name: docker 
+    state: reloaded
+
+- name: systemd.reload
+  systemd:
+    daemon_reload: yes

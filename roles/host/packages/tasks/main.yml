@@ -1,0 +1,27 @@
+---
+- name: Manage Package manager keys
+  import_tasks: keys.yml
+
+- name: Manage Package manager repositories
+  import_tasks: repositories.yml
+
+## packages
+- name: Installing packages 
+  apt:
+    name: "{{ packages.install }}"
+    state: latest
+    update_cache: yes
+  when: packages.install is defined
+
+- name: Removing dependencies 
+  apt:
+    name: "{{ packages.remove }}"
+    state: absent
+    autoremove: yes
+    update_cache: yes
+  when: packages.remove is defined
+
+- name: Remove useless packages from the cache
+  apt:
+    autoclean: yes    
+    autoremove: yes

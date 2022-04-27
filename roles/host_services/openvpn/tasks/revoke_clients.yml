@@ -1,9 +1,0 @@
----
-- name: get "{{ item }}" status
-  stat:
-    path: "{{ easy_rsa_pki_dir }}/issued/{{ item }}.crt"
-  register: file_info
-
-- name: generate certificate for "{{ item }}"
-  shell: "{{ easy_rsa_dir }}/easyrsa --batch revoke '{{ item }}'"
-  when: file_info.stat.exists

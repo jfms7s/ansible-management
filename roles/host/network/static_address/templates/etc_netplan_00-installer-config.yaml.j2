@@ -1,0 +1,10 @@
+network:
+  version: 2
+  ethernets:
+{% for setting in network.static_address %}
+    {{ setting.interface }}:
+      addresses: {{ setting.addresses }}
+      gateway4: {{ setting.gateway }}
+      nameservers:
+        addresses: {{ setting.dns }}
+{% endfor %}

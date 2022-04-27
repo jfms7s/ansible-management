@@ -1,0 +1,50 @@
+---
+- hosts: pi4-playground
+  gather_facts: true
+  become: true
+  roles:
+    - role: host/packages
+      packages:
+        key:
+          add: []
+          remove: []
+
+        repository:
+          add: []
+          remove: []
+        remove: []
+        install: 
+        - default-jre
+        - default-jdk
+        - scala
+    - role: python/pip
+      pip:
+        remove: []
+        install:
+        - pyspark
+        - poetry
+
+    - role: host/volumes
+      volumes:
+        - src: 192.168.0.4:/volume1/homes
+          path: /mnt/homes
+          fstype: nfs
+          state: mounted
+      
+        - src: 192.168.0.4:/volume1/k8s
+          path: /mnt/k8s
+          fstype: nfs
+          state: mounted
+
+        - src: 192.168.0.4:/volume1/media
+          path: /mnt/media
+          fstype: nfs
+          state: mounted
+
+        - src: 192.168.0.4:/volumeUSB1/usbshare
+          path: /mnt/downloads
+          fstype: nfs
+          state: mounted
+
+    - role: host/services/apache_spark
+      binary_url: "https://dlcdn.apache.org/spark/spark-3.2.1/spark-3.2.1-bin-hadoop3.2-scala2.13.tgz"

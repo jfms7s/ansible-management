@@ -1,3 +1,0 @@
-{% for item in (openvpn.subnets | default([]) ) %}
-iroute {{ item | ipaddr('network') }} {{ item | ipaddr('netmask') }}
-{% endfor %}

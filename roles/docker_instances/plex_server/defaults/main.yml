@@ -1,6 +1,0 @@
----
-plex:
-  location:
-    plex_configs: /etc/plex-config
-    tautulli_configs: /etc/tautulli-config
-    media: ~/media

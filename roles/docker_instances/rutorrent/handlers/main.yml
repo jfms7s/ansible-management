@@ -1,9 +1,0 @@
----
-- name: ru_torrent.restart
-  docker_container:
-    name: ru-torrent
-    state: started
-    restart: yes
-
-
-

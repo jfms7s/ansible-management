@@ -1,0 +1,4 @@
+---
+spark_home: /opt/spark/
+spark_tmp_old: "/tmp/spark.old/"
+spark_tmp_new: "/tmp/spark.new/"

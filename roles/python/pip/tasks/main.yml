@@ -1,0 +1,10 @@
+---
+- name: Remove python module
+  pip:
+    name: "{{ pip.remove }}"
+  when: pip.remove is defined
+
+- name: Install python module
+  pip:
+    name: "{{ pip.install }}"
+  when: pip.install is defined

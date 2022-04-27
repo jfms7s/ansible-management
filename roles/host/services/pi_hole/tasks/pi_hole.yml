@@ -1,0 +1,79 @@
+---
+- name: Check current pi-hole version
+  command: "{{ pi_hole_bin }} -v"
+  failed_when: false
+  changed_when: false
+  register: pi_hole_info
+
+- name: Create required directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ pi_hole_config_location}}"
+    - /etc/dnsmasq.d
+
+- name: Copy pihole vodafone configs
+  template: 
+    src: "{{ item.from }}"
+    dest: "{{ item.to }}"
+    backup: yes
+  loop:
+    - from: "03-vodafone.conf.j2"
+      to: "/etc/dnsmasq.d/03-vodafone.conf"
+  when: vodafone_box is defined
+  notify:
+    - pihole.restart
+
+- name: Copy pihole configs
+  template: 
+    src: "{{ item.from }}"
+    dest: "{{ item.to }}"
+    backup: yes
+  loop:
+    - from: setupVars.conf.j2
+      to: "{{ pi_hole_config_location}}/setupVars.conf"
+
+- name: Pi-hole instalation required
+  block:
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ pi_hole_tmp_dir }}"
+
+    - name: Copy pihole configs
+      template: 
+        src: "{{ item.from }}"
+        dest: "{{ item.to }}"
+        backup: yes
+      loop:
+        - from: setupVars.conf.j2
+          to: "{{ pi_hole_config_location}}/setupVars.conf"
+
+    - name: Get pi hole last build info
+      uri:
+        url: "https://api.github.com/repos/pi-hole/pi-hole/releases/latest"
+        return_content: yes
+      register: git_response
+
+    - name: Get Latest artifact
+      get_url:                                                           
+        url: "{{ (git_response.content | from_json).tarball_url }}"
+        dest: "{{ pi_hole_tmp_dir }}/pi-hole.tar.gz"
+
+    - name: Unarchive artifact
+      unarchive:
+        src: "{{ pi_hole_tmp_dir }}/pi-hole.tar.gz"
+        dest: "{{ pi_hole_tmp_dir }}"
+        extra_opts: [--strip-components=1]
+        remote_src: yes
+
+    - name: Install Pi-Hole
+      shell: "{{ pi_hole_tmp_dir }}/automated\\ install/basic-install.sh --unattended"
+      register: pi_hole_install
+  when: pi_hole_info.failed
+
+- name: Update pi-hole
+  command: "{{ pi_hole_bin }} -up"

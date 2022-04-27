@@ -1,0 +1,83 @@
+---
+- name: Create spark directory
+  file:
+    path: "{{ spark_home }}"
+    state: directory
+
+- name: get remote file contents
+  command: "cat {{ spark_home }}/source_url"
+  register: version_file
+  ignore_errors: true
+
+- name: Install Spark
+  block:
+    - name: Ensure temp dirs are empty
+      file:
+        state: absent
+        path: "{{ item }}"
+      loop:
+        - /tmp/spark.old/
+        - /tmp/spark.new/
+
+    - name: Create temp directories
+      file:
+        state: directory
+        path: "{{ item }}"
+      loop:
+        - /tmp/spark.old/
+        - /tmp/spark.new/
+
+    - name: Copy old build to temp
+      copy:
+        src: "{{ spark_home }}"
+        dest: /tmp/spark.old/
+        remote_src: true
+
+    - name: Remove app directory
+      file:
+        path: "{{ spark_home }}"
+        state: absent
+
+    - name: Create spark directory
+      file:
+        path: "{{ spark_home }}"
+        state: directory
+
+    - name: Get project
+      unarchive:
+        src: "{{ binary_url }}"
+        dest: /tmp/spark.new/
+        extra_opts: [--strip-components=1]
+        remote_src: yes
+
+    - name: Set artifact source
+      copy:
+        dest: /tmp/spark.new/source_url
+        content: "{{ binary_url }}"
+
+    - name: Set new build
+      copy:
+        src: /tmp/spark.new/
+        dest: "{{ spark_home }}"
+        remote_src: true
+  rescue:
+    - name: Recover old build
+      copy:
+        src: /tmp/spark.old/
+        dest: "{{ spark_home }}"
+        remote_src: true
+
+  always:
+    - name: Clean temp directories 
+      file:
+        state: absent
+        path: "{{ item }}"
+      loop:
+        - /tmp/spark.old/
+        - /tmp/spark.new/
+  when: "not version_file.stdout ==  binary_url"
+
+- name: Set spark variables
+  template: 
+    src: etc_profile.d_spark.sh.j2
+    dest: /etc/profile.d/spark.sh

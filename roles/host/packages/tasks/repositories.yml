@@ -1,0 +1,15 @@
+---
+## repository
+- name: Add Repository
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  loop: "{{ packages.repository.add }}"
+  when: packages.repository.add is defined
+
+- name: Remove Repository
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  loop: "{{ packages.repository.remove }}"
+  when: packages.repository.remove is defined
