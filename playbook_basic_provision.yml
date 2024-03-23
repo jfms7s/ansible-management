@@ -14,7 +14,6 @@
         remove: []
 #       - cifs-utils
         install:
-        - gtar 
         - tar
         - unzip
         - git
@@ -36,23 +35,17 @@
         - netaddr
         - jinja2-ansible-filters
 
-    - role: host/users
-      users:
-        - name: "{{ lookup('env', 'USER') }}"
-          authorized_key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub') }}"
-          append_group: yes
-          groups: 
-            - sysadmin
-          remove: false
-          remove_home: false
+#    - role: host/users
+#      users:
+#        - name: "{{ lookup('env', 'USER') }}"
+#          authorized_key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub') }}"
+#          append_group: yes
+#          groups: 
+#            - sysadmin
+#          remove: false
+#          remove_home: false
 
     - role: host/volumes
-#      volumes:
-#        - src: //base_path
-#          path: /mnt/location
-#          fstype: fs_type
-#          state: mounted
-#          opts: opt
       when: volumes is defined
 
     - role: host/network/static_address

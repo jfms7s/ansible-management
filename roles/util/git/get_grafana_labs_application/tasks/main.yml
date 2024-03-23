@@ -9,11 +9,13 @@
     url: "{{ repo_url }}"
     return_content: yes
   register: git_response
+  failed_when: "'failed' in git_response"
 
 - name: Set basic release information
   set_fact:
     artifact_url: "{{ (git_response.content | from_json) | json_query( git_artifact_filter + '.browser_download_url' ) | first }}"
     artifact_content_type: "{{ (git_response.content | from_json) | json_query( git_artifact_filter + '.content_type' ) | first }}"
+  when: git_response is changed
 
 - name: Check current version
   command: "{{ binary_path }} {{ binary_version_argument }}"
@@ -50,7 +52,7 @@
             }}
         remote_src: yes
 
-    - name: Remove remove zipped artifact
+    - name: Remove zipped artifact
       file:
         path: "/tmp/{{ project_name }}/{{ project_name }}.tar.gz"
         state: absent
@@ -63,32 +65,32 @@
     
     - name: Copy old build to temp
       copy:
-        src: /opt/{{ project_name }}/
-        dest: /tmp/{{ project_name }}.old/
+        src: "/opt/{{ project_name }}/"
+        dest: "/tmp/{{ project_name }}.old/"
         remote_src: true
       ignore_errors: yes
 
     - name: Remove old files
       file: 
-        path: /opt/{{ project_name }}/
+        path: "/opt/{{ project_name }}/"
         state: absent
 
     - name: Copy new build to /opt/
       copy:
-        src: /tmp/{{ project_name }}/
-        dest: /opt/{{ project_name }}/
+        src: "/tmp/{{ project_name }}/"
+        dest: "/opt/{{ project_name }}/"
         remote_src: true
   
   rescue:
-    - name: Remove fail build
+    - name: Remove failed build
       file: 
-        path: /opt/{{ project_name }}/
+        path: "/opt/{{ project_name }}/"
         state: absent
       
-    - name: revert old build to /opt/
+    - name: Revert old build to /opt/
       copy:
-        src: /tmp/{{ project_name }}.old/
-        dest: /opt/{{ project_name }}/
+        src: "/tmp/{{ project_name }}.old/"
+        dest: "/opt/{{ project_name }}/"
         remote_src: true
 
   always:
@@ -97,7 +99,7 @@
         path: "{{ item }}"
         state: absent
       loop:
-        - /tmp/{{ project_name }}
-        - /tmp/{{ project_name }}.old/
+        - "/tmp/{{ project_name }}"
+        - "/tmp/{{ project_name }}.old/"
 
-  when: (git_response.content | from_json).tag_name | replace('v','') not in (build_info.stdout | default('') )
+  when: (git_response.content | from_json).tag_name | replace('v','') not in (build_info.stdout | default(''))

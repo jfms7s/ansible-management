@@ -1,0 +1,5 @@
+---
+- src: git@github.com:k3s-io/k3s-ansible.git
+  version: master
+  name: k3s-ansible
+  scm: git
